@@ -56,7 +56,7 @@ O e-mail enviado tem esta cara:
 Eu rodo isso a cada meia hora via crontab, assim:
 
 ```crontab
-0,30 * * * * cd $HOME/Notebooks/MercadoBitcoinBalance && ./balancemb.py --id 0…5 --secret 1…9 --treshold 5 --csv balances.txt --csv-fund-name 'Nome arbitrário do fundo' --mail seu_email@mail.net
+*/30 * * * * cd $HOME/Notebooks/MercadoBitcoinBalance && ./balancemb.py --id 0…5 --secret 1…9 --treshold 5 --csv balances.txt --csv-fund-name 'Nome arbitrário do fundo' --mail seu_email@mail.net
 ```
 
 É necessário Python 3, Pandas e nada mais para rodar este programa.
