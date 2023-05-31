@@ -59,7 +59,7 @@ Eu rodo isso a cada meia hora via crontab, assim:
 0,30 * * * * cd $HOME/Notebooks/MercadoBitcoinBalance && ./balancemb.py --id 0…5 --secret 1…9 --treshold 5 --csv balances.txt --csv-fund-name 'Nome arbitrário do fundo' --mail seu_email@mail.net
 ```
 
-É necessário Pandas e nada mais para rodar este programa.
+É necessário Python 3, Pandas e nada mais para rodar este programa.
 
 Para conseguir enviar e-mails, seu sistema (Linux, obviamente) de forma geral precisa estar configurado como cliente de mail. [Eis um exemplo para configurar o postfix do Fedora](https://fedoramagazine.org/use-postfix-to-get-email-from-your-fedora-system/).
 
