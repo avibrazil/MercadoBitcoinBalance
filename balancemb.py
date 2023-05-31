@@ -1,21 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 
-import base64
 import argparse
 import logging
 import json
-import requests
 import hashlib
 import hmac
 import urllib.request
 import urllib.parse
 import concurrent.futures
-import smtplib, ssl
-import email
-from email.message import EmailMessage
-from email.mime.text import MIMEText
+import smtplib
 import email.mime.multipart
+import email.mime.text
 import pandas
 
 
@@ -136,7 +132,7 @@ def send_mail_report(recipient,tokens):
     # msg['References']     = m['original']["Message-ID"]#+orig["References"].strip()
     msg['Thread-Topic']   = 'Mercado Bitcoin balance'
 
-    body.attach(MIMEText('\n'.join([line.format(**tokens) for line in template_body]), 'html'))
+    body.attach(email.mime.text.MIMEText('\n'.join([line.format(**tokens) for line in template_body]), 'html'))
 
     msg.attach(body)
 
