@@ -105,7 +105,7 @@ class MercadoBitcoinAPI:
                 column_name: lambda table: (table.total*table['last']).combine_first(table.total)
             })
             [[column_name]]
-            .sort_values(ascending=False)
+            .sort_values(column_name,ascending=False)
         )
 
 
@@ -114,11 +114,11 @@ def send_telegram_report(chat_id,bot_id,tokens):
     Send a report via telegram.
     """
     template=[
-        'Current balance: <strong>{balance:,.2f} BRL</strong>.',
-        'Previous balance: <strong>{balance_prev:,.2f} BRL</strong>.',
-        'Variation: <strong>{balance_var:,.2f} BRL</strong>.',
-        'Percent change: <strong>{balance_pct_change:,.2%}</strong>.',
-        'Brakedown by tokens and coins:',
+        'Current balance: <strong>{balance:,.2f} BRL</strong>.\n',
+        'Previous balance: <strong>{balance_prev:,.2f} BRL</strong>.\n',
+        'Variation: <strong>{balance_var:,.2f} BRL</strong>.\n',
+        'Percent change: <strong>{balance_pct_change:,.2%}</strong>.\n',
+        '<strong>Brakedown by tokens and coins:</strong>',
         '<pre>{balances}</pre>'
     ]
 
