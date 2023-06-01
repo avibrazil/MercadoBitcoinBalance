@@ -52,8 +52,8 @@ O e-mail e mensagem de Telegram enviados tem esta cara:
 > Brakedown by tokens and coins:
 > | 	| Total (BRL) |
 > ------|--------------
-> | **abfy** | 336.42 BRL |
 > | **brl**	 | 36,229.86 BRL |
+> | **abfy** | 336.42 BRL |
 > | **psgft** | 9.40 BRL |
 > | **wemix** | 0.54 BRL |
 
