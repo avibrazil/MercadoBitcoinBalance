@@ -105,6 +105,7 @@ class MercadoBitcoinAPI:
                 column_name: lambda table: (table.total*table['last']).combine_first(table.total)
             })
             [[column_name]]
+            .sort_values(ascending=False)
         )
 
 
