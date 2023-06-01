@@ -5,27 +5,31 @@ Este programa:
 - Busca saldo em BRL de todos os seus tokens no Mercado Bitcoin
 - Calcula saldo consolidado
 - Atualiza um CSV caso o saldo tenha mudado
-- Manda o saldo atual por e-mail junto com algumas estatísticas
+- Manda o saldo atual por e-mail ou Telegram junto com algumas estatísticas
 
 ## Como usá-lo
 
 ```shell
 balancemb.py \
-    --id 06…05 \
-    --secret 10…19 \
+    --mb-id 06…05 \
+    --mb-secret 10…19 \
     --treshold 5 \
     --csv balances.txt \
     --csv-fund-name 'Nome arbitrário do fundo' \
-    --mail seu_email@mail.net
+    --mail seu_email@mail.net \
+    --telegram-chat-id 12345678 \
+    --telegram-bot-id '13…Wk'
 ```
 
 Sendo:
 
-- `id` e `secret`: suas credenciais obtidas em https://www.MercadoBitcoin.com.br/plataforma/chaves-api
+- `mb-id` e `mb-secret`: suas credenciais obtidas em https://www.MercadoBitcoin.com.br/plataforma/chaves-api
 - `treshold`: variação menor do que este valor será desconsiderado
 - `csv`: nome do arquivo CSV para registrar o saldo
 - `csv-fund-name`: um nome qualquer para etiquetar o saldo no CSV
-- `mail`: endereço para enviar pequeno relatório por e-mail
+- `mail`: endereço para enviar pequeno relatório por e-mail; não manda se omitido
+- `telegram-chat-id`: o ID do seu usuário Telegram; não manda se omitido
+- `telegram-bot-id`: o ID do bot que você deve criar em https://t.me/BotFather
 
 O CSV acumula os valores como uma série histórica. Registra a hora UTC, o nome do fundo (passado em `csv-fund-name`) e o saldo consolidado em BRL. Assim:
 
@@ -35,7 +39,7 @@ time|fund|BRL
 2023-05-31T20:50:14.708121+00:00|Nome arbitrário do fundo|36576.22
 ```
 
-O e-mail enviado tem esta cara:
+O e-mail e mensagem de telegram enviados tem esta cara:
 
 > Current balance: **36,576.22 BRL**.
 >
@@ -56,8 +60,10 @@ O e-mail enviado tem esta cara:
 Eu rodo isso a cada meia hora via crontab, assim:
 
 ```crontab
-*/30 * * * * cd $HOME/Notebooks/MercadoBitcoinBalance && ./balancemb.py --id 0…5 --secret 1…9 --treshold 5 --csv balances.txt --csv-fund-name 'Nome arbitrário do fundo' --mail seu_email@mail.net
+*/30 * * * * cd $HOME/Notebooks/MercadoBitcoinBalance && ./balancemb.py --mb-id 06…05 --mb-secret 10…19 --csv balances.txt --csv-fund-name 'ShiguBot MB' --telegram-chat-id 12345678 --telegram-bot-id '11223344::A…k'
 ```
+
+Ou seja, atualizo saldo consolidado em `balances.txt`, não mando e-mail mas mando saldos por Telegram.
 
 É necessário Python 3, Pandas e nada mais para rodar este programa.
 
