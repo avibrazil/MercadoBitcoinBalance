@@ -24,7 +24,7 @@ balancemb.py \
 Sendo:
 
 - `mb-id` e `mb-secret`: suas credenciais obtidas em https://www.MercadoBitcoin.com.br/plataforma/chaves-api
-- `treshold`: desconsidera variação menor do que este valor
+- `treshold`: só toma ações se variação do saldo é maior do que este valor
 - `csv`: nome do arquivo CSV para registrar o saldo
 - `csv-fund-name`: um nome qualquer para etiquetar o saldo no CSV
 - `mail`: endereço para enviar pequeno relatório por e-mail; não manda se omitido
