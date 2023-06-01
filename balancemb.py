@@ -119,10 +119,17 @@ def send_telegram_report(chat_id,bot_id,tokens):
         'Variation: <strong>{balance_var:,.2f} BRL</strong>.',
         'Percent change: <strong>{balance_pct_change:,.2%}</strong>.',
         'Brakedown by tokens and coins:',
-        '<code>{balances}</code>'
+        '<pre>{balances}</pre>'
     ]
 
-    message = urllib.parse.quote('\n'.join([line.format(**tokens) for line in template]))
+    message = urllib.parse.quote(
+        '\n'.join(
+            [
+                line.format(**tokens)
+                for line in template
+            ]
+        )
+    )
 
     urllib.request.urlopen(
         urllib.request.Request(
