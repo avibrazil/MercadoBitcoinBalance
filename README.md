@@ -31,7 +31,7 @@ Sendo:
 - `telegram-chat-id`: o ID do seu usuário Telegram; não manda se omitido
 - `telegram-bot-id`: o ID do bot que você deve criar em https://t.me/BotFather
 
-O CSV acumula os valores como uma série histórica. Registra a hora UTC, o nome do fundo (passado em `csv-fund-name`) e o saldo consolidado em BRL. Assim:
+O CSV acumula os valores como uma série temoral. Registra a hora UTC (UTC, sempre UTC, sempre), o nome do fundo (passado em `csv-fund-name`) e o saldo consolidado em BRL. Assim:
 
 ```csv
 time|fund|BRL
