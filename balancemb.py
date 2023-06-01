@@ -108,6 +108,27 @@ class MercadoBitcoinAPI:
         )
 
 
+def send_telegram_report(chat_id,bot_id,tokens):
+    """
+    Send a report via telegram.
+    """
+    template=[
+        'Current balance: <strong>{balance:,.2f} BRL</strong>.',
+        'Previous balance: <strong>{balance_prev:,.2f} BRL</strong>.',
+        'Variation: <strong>{balance_var:,.2f} BRL</strong>.',
+        'Percent change: <strong>{balance_pct_change:,.2%}</strong>.',
+        'Brakedown by tokens and coins:',
+        '<code>{balances}</code>'
+    ]
+
+    message = urllib.parse.quote('\n'.join([line.format(**tokens) for line in template]))
+
+    urllib.request.urlopen(
+        urllib.request.Request(
+            url=f"https://api.telegram.org/bot{bot_id}/sendMessage?parse_mode=html&chat_id={chat_id}&text={message}",
+        )
+    )
+
 
 def send_mail_report(recipient,tokens):
     """
@@ -119,7 +140,7 @@ def send_mail_report(recipient,tokens):
         '<p>Previous balance: <strong>{balance_prev:,.2f} BRL</strong>.</p>',
         '<p>Variation: <strong>{balance_var:,.2f} BRL</strong>.</p>',
         '<p>Percent change: <strong>{balance_pct_change:,.2%}</strong>.</p>',
-        'Brakedown by tokens and coins:</p>',
+        '<p>Brakedown by tokens and coins:</p>',
         '{balances}'
     ]
 
@@ -171,33 +192,76 @@ def prepare_args():
         description='Get consolidated balance from Mercado Bitcoin. Optionaly send it by e-mail and write to CSV file.'
     )
 
-    parser.add_argument('--id', dest='MP_API_ID', required=True,
-        help='API ID as appears at https://www.MercadoBitcoin.com.br/plataforma/chaves-api')
+    parser.add_argument(
+        '--mb-id',
+        dest='MP_API_ID',
+        required=True,
+        help='API ID as appears at https://www.MercadoBitcoin.com.br/plataforma/chaves-api'
+    )
 
-    parser.add_argument('--secret', dest='MP_API_SECRET', required=True,
-        help='Secret string as delivered when an ID was created at https://www.MercadoBitcoin.com.br/plataforma/chaves-api')
+    parser.add_argument(
+        '--mb-secret',
+        dest='MP_API_SECRET',
+        required=True,
+        help='Secret string as delivered when an ID was created at https://www.MercadoBitcoin.com.br/plataforma/chaves-api'
+    )
 
-    parser.add_argument('--csv', dest='csv_file_name', required=False,
+    parser.add_argument(
+        '--telegram-chat-id',
+        dest='TELEGRAM_CHAT_ID',
+        required=False,
         default=None,
-        help='If defined, append consolidated balance to this CSV file')
+        help='Recipient’s Telegram ID'
+    )
 
-    parser.add_argument('--csv-fund-name', dest='csv_fund_name', required=False,
+    parser.add_argument(
+        '--telegram-bot-id',
+        dest='TELEGRAM_BOT_ID',
+        required=False,
+        default=None,
+        help='Telegram bot ID as provided by https://t.me/BotFather'
+    )
+
+    parser.add_argument(
+        '--csv',
+        dest='csv_file_name',
+        required=False,
+        default=None,
+        help='If defined, append consolidated balance to this CSV file'
+    )
+
+    parser.add_argument(
+        '--csv-fund-name',
+        dest='csv_fund_name',
+        required=False,
         default='Mercado Bitcoin',
-        help='An arbitrary fund name to tag lines in the CSV output')
+        help='An arbitrary fund name to tag lines in the CSV output'
+    )
 
-    parser.add_argument('--treshold', dest='balance_variation_treshold',
+    parser.add_argument(
+        '--treshold',
+        dest='balance_variation_treshold',
         required=False,
         type=float,
         default=2,
-        help='A minimum BRL value to consider as balance variation')
+        help='A minimum BRL value to consider as balance variation'
+    )
 
-    parser.add_argument('--mail', dest='mail_recipient', required=False,
+    parser.add_argument(
+        '--mail',
+        dest='mail_recipient',
+        required=False,
         default=None,
-        help='An e-mail address to receive a report.')
+        help='An e-mail address to receive a report.'
+    )
 
-    parser.add_argument('--debug', dest='DEBUG', action=argparse.BooleanOptionalAction,
+    parser.add_argument(
+        '--debug',
+        dest='DEBUG',
+        action=argparse.BooleanOptionalAction,
         default=False,
-        help='Be more verbose and output messages to console.')
+        help='Be more verbose and output messages to console.'
+    )
 
     parsed = parser.parse_args()
 
@@ -275,6 +339,24 @@ def main():
                 sep='|',
                 index=False
             )
+
+    if balance_change and args['TELEGRAM_CHAT_ID'] and args['TELEGRAM_BOT_ID']:
+        send_telegram_report(
+            args['TELEGRAM_CHAT_ID'],
+            args['TELEGRAM_BOT_ID'],
+            dict(
+                balance=balance.BRL.sum(),
+                balance_prev=balance_prev,
+                balance_var=balance.BRL.sum()-balance_prev,
+                balance_pct_change=(balance.BRL.sum()/balance_prev)-1,
+                balances=(
+                    balances.style
+                    .format('{:,.2f} BRL')
+                    .to_string()
+                )
+            )
+        )
+
 
     if balance_change and args['mail_recipient']:
         send_mail_report(
