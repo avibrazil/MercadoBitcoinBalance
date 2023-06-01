@@ -1,4 +1,4 @@
-# Calcula e salva seu saldo do Mercado Bitcoin
+# Calcula, salva e reporta seu saldo do Mercado Bitcoin
 
 Este programa:
 
