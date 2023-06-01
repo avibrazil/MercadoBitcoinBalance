@@ -39,7 +39,7 @@ time|fund|BRL
 2023-05-31T20:50:14.708121+00:00|Nome arbitrário do fundo|36576.22
 ```
 
-O e-mail e mensagem de telegram enviados tem esta cara:
+O e-mail e mensagem de Telegram enviados tem esta cara:
 
 > Current balance: **36,576.22 BRL**.
 >
@@ -60,7 +60,7 @@ O e-mail e mensagem de telegram enviados tem esta cara:
 Eu rodo isso a cada meia hora via crontab, assim:
 
 ```crontab
-*/30 * * * * cd $HOME/Notebooks/MercadoBitcoinBalance && ./balancemb.py --mb-id 06…05 --mb-secret 10…19 --csv balances.txt --csv-fund-name 'ShiguBot MB' --telegram-chat-id 12345678 --telegram-bot-id '11223344::A…k'
+*/30 * * * * cd $HOME/Notebooks/MercadoBitcoinBalance && ./balancemb.py --mb-id 06…05 --mb-secret 10…19 --csv balances.txt --csv-fund-name 'Nome arbitrário do fundo' --telegram-chat-id 12345678 --telegram-bot-id '11223344::A…k'
 ```
 
 Ou seja, atualizo saldo consolidado em `balances.txt`, não mando e-mail mas mando saldos por Telegram.
