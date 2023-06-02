@@ -13,7 +13,7 @@ Este programa:
 balancemb.py \
     --mb-id 06…05 \
     --mb-secret 10…19 \
-    --treshold 5 \
+    --report-threshold 5 \
     --csv balances.txt \
     --csv-fund-name 'Nome arbitrário do fundo' \
     --mail seu_email@mail.net \
@@ -24,7 +24,7 @@ balancemb.py \
 Sendo:
 
 - `mb-id` e `mb-secret`: suas credenciais obtidas em https://www.MercadoBitcoin.com.br/plataforma/chaves-api
-- `treshold`: só toma ações se variação do saldo é maior do que este valor
+- `report-threshold`: só manda relatório se variação do saldo é maior do que este valor
 - `csv`: nome do arquivo CSV para registrar o saldo
 - `csv-fund-name`: um nome qualquer para etiquetar o saldo no CSV
 - `mail`: endereço para enviar pequeno relatório por e-mail; não manda se omitido

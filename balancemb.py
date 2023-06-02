@@ -247,12 +247,12 @@ def prepare_args():
     )
 
     parser.add_argument(
-        '--treshold',
-        dest='balance_variation_treshold',
+        '--report-threshold',
+        dest='report_threshold',
         required=False,
         type=float,
         default=2,
-        help='A minimum BRL value to consider as balance variation'
+        help='Send report only if balance variation is bigger than this'
     )
 
     parser.add_argument(
@@ -300,64 +300,102 @@ def main():
 
     balance=pandas.DataFrame(
         data=dict(
-            time  = pandas.Timestamp.now(tz='UTC').isoformat(),
             fund  = args['csv_fund_name'],
             BRL   = balances.sum().values[0]
         ),
-        index=[0]
+        index=pandas.DatetimeIndex([pandas.Timestamp.now(tz='UTC')], name='time')
     )
 
-    balance_change=None
+    balance_change=True
     balance_prev=None
+    csv=None
 
     if args['csv_file_name']:
         try:
-            csv=pandas.read_csv(args['csv_file_name'],sep='|')
+            csv=pandas.read_csv(
+                args['csv_file_name'],
+                parse_dates=[0],
+                index_col=0,
+                sep='|'
+            ).sort_index()
         except FileNotFoundError:
             csv=None
 
         if csv is not None:
             # CSV exists.
-            # Append only if balance changed from last position
-            # No headers, no index.
-            balance_prev=csv.sort_values('time').tail(1).BRL.values[0]
+
+            # Determine if we still want to send report
+            balance_prev=csv.tail(1).BRL.values[0]
             balance_change=(
                 abs(
                     balance.BRL.sum() -
                     balance_prev
-                )>args['balance_variation_treshold']
+                )>args['report_threshold']
             )
 
-        if csv is not None:
-            if balance_change:
-                # act if balance change is significant
-                # No headers, no index.
-                balance.to_csv(
-                    args['csv_file_name'],
-                    sep='|',
-                    index=False,
-                    header=False,
-                    mode='a',
-                )
+            # CSV writting parameters
+            to_csv_mode='a'
+            to_csv_header=False
         else:
+            # Set to send report because this is the first run
+            balance_change=True
+
             # CSV doesn't exist.
-            # Create and write with header
-            balance.to_csv(
+            # CSV writting parameters
+            to_csv_mode='w'
+            to_csv_header=True
+
+        # Append to an existent CSV only if balance changed
+        if abs(balance.BRL.sum()-balance_prev)>0:
+            (
+                balance
+                .reset_index()
+                .assign(time=lambda table: table.time.apply(lambda timecell: timecell.isoformat()))
+            ).to_csv(
                 args['csv_file_name'],
                 sep='|',
-                index=False
+                index=False,
+                header=False,
+                mode='a',
             )
+
+        # Now reload a complete and up to date CSV
+        balance_history=pandas.read_csv(
+            args['csv_file_name'],
+            parse_dates=[0],
+            index_col=0,
+            sep='|'
+        ).sort_index()
+
+    else: # no CSV
+        balance_history=balance
+
+    # At this point we have the following:
+    # - balances: DataFrame with BRL balance per token
+    # - balance_history: Time series of summarized balances
+
+    report_tokens=dict(
+        balance_history  = balance_history,
+        balances         = balances,
+
+        balance          = balance_history.BRL.sum(),
+        balance_prev     = balance_prev,
+        balance_var      = balance_history.BRL.sum()-balance_prev,
+        balance_pct_change = (balance_history.BRL.sum()/balance_prev)-1,
+        balance_growth     = balance_history.tail(1).BRL.values[0]/balance_history.head(1).BRL.values[0]-1,
+        balance_growth_period = '{}m{}d'.format(
+            int((balance_history.index[-1]-balance_history.index[0]).days/30),
+            int((balance_history.index[-1]-balance_history.index[0]).days%30)
+        )
+    )
 
     if balance_change and args['TELEGRAM_CHAT_ID'] and args['TELEGRAM_BOT_ID']:
         send_telegram_report(
             args['TELEGRAM_CHAT_ID'],
             args['TELEGRAM_BOT_ID'],
             dict(
-                balance=balance.BRL.sum(),
-                balance_prev=balance_prev,
-                balance_var=balance.BRL.sum()-balance_prev,
-                balance_pct_change=(balance.BRL.sum()/balance_prev)-1,
-                balances=(
+                **report_tokens,
+                balances = (
                     balances.style
                     .format('{:,.2f} BRL')
                     .to_string()
@@ -370,11 +408,8 @@ def main():
         send_mail_report(
             args['mail_recipient'],
             dict(
-                balance=balance.BRL.sum(),
-                balance_prev=balance_prev,
-                balance_var=balance.BRL.sum()-balance_prev,
-                balance_pct_change=(balance.BRL.sum()/balance_prev)-1,
-                balances=(
+                **report_tokens,
+                balances = (
                     balances.style
                     .format('{:,.2f} BRL')
                     .set_table_styles(
