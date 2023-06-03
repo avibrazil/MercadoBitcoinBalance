@@ -13,9 +13,10 @@ Este programa:
 balancemb.py \
     --mb-id 06…05 \
     --mb-secret 10…19 \
-    --report-threshold 5 \
+    --csv-threshold 1 \
     --csv balances.txt \
     --csv-fund-name 'Nome arbitrário do fundo' \
+    --report-threshold 20 \
     --mail seu_email@mail.net \
     --telegram-chat-id 12345678 \
     --telegram-bot-id '13…Wk'
@@ -24,9 +25,10 @@ balancemb.py \
 Sendo:
 
 - `mb-id` e `mb-secret`: suas credenciais obtidas em https://www.MercadoBitcoin.com.br/plataforma/chaves-api
-- `report-threshold`: só manda relatório se variação do saldo é maior do que este valor
+- `csv-threshold`: só atualiza CSV se variação do saldo é maior do que este valor
 - `csv`: nome do arquivo CSV para registrar o saldo
 - `csv-fund-name`: um nome qualquer para etiquetar o saldo no CSV
+- `report-threshold`: só manda relatório se variação do saldo é maior do que este valor
 - `mail`: endereço para enviar pequeno relatório por e-mail; não manda se omitido
 - `telegram-chat-id`: o ID do seu usuário Telegram; não manda se omitido
 - `telegram-bot-id`: o ID do bot que você deve criar em https://t.me/BotFather
@@ -49,6 +51,8 @@ O e-mail e mensagem de Telegram enviados tem esta cara:
 >
 > Percent change: **5.72%**.
 >
+> Historycal growth: **4%** in **0m2d**.
+>
 > Brakedown by tokens and coins:
 > | 	| Total (BRL) |
 > ------|--------------
@@ -60,10 +64,12 @@ O e-mail e mensagem de Telegram enviados tem esta cara:
 Eu rodo isso a cada meia hora via crontab, assim:
 
 ```crontab
-*/30 * * * * cd $HOME/Notebooks/MercadoBitcoinBalance && ./balancemb.py --mb-id 06…05 --mb-secret 10…19 --csv balances.txt --csv-fund-name 'Nome arbitrário do fundo' --telegram-chat-id 12345678 --telegram-bot-id '11223344::A…k'
+*/30 * * * * cd $HOME/Notebooks/MercadoBitcoinBalance && ./balancemb.py --mb-id 06…05 --mb-secret 10…19 --csv-threshold 2 --csv balances.txt --csv-fund-name 'Nome arbitrário do fundo' --report-threshold 20 --telegram-chat-id 12345678 --telegram-bot-id '11223344::A…k'
+15 20 * * * cd $HOME/Notebooks/MercadoBitcoinBalance && ./balancemb.py --mb-id 06…05 --mb-secret 10…19 --csv-threshold 5 --csv balances.txt --csv-fund-name 'Nome arbitrário do fundo' --report-threshold -1 --telegram-chat-id 12345678 --telegram-bot-id '11223344::A…k'
 ```
 
-Ou seja, atualizo saldo consolidado em `balances.txt`, não mando e-mail mas mando saldos por Telegram.
+Ou seja, atualizo saldo consolidado em `balances.txt` a cada meia hora, não mando e-mail mas mando saldos por Telegram caso houver variação de mais de 20 BRL.
+Além do mais, todo dia às 20:15 manda o saldo atual.
 
 É necessário Python 3, Pandas e nada mais para rodar este programa.
 

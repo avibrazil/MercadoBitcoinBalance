@@ -2,6 +2,8 @@
 # -*- coding: UTF-8 -*-
 
 import argparse
+import io
+import itertools
 import logging
 import json
 import hashlib
@@ -43,7 +45,7 @@ class MercadoBitcoinAPI:
                     urllib.request.urlopen(
                         urllib.request.Request(
                             url=self.MB_TRANSACTION_API,
-                            data=balance_params.encode('utf-8'),
+                            data=balance_params.encode(),
                             headers={
                                 'user-agent': 'Mozilla',
                                 'TAPI-ID': self.api_id,
@@ -55,7 +57,7 @@ class MercadoBitcoinAPI:
                                         msg       = '{path}?{query}'.format(
                                             path=urllib.parse.urlparse(self.MB_TRANSACTION_API).path,
                                             query=balance_params
-                                        ).encode('utf-8')
+                                        ).encode()
                                     )
                                     .hexdigest()
                                 )
@@ -63,7 +65,7 @@ class MercadoBitcoinAPI:
                         )
                     )
                     .read()
-                    .decode('utf-8')
+                    .decode()
                 )['response_data']['balance']
             )
             .T
@@ -81,7 +83,7 @@ class MercadoBitcoinAPI:
                     )
                 )
                 .read()
-                .decode('utf-8')
+                .decode()
             )['ticker']
         }
 
@@ -113,11 +115,16 @@ def send_telegram_report(chat_id,bot_id,tokens):
     """
     Send a report via telegram.
     """
+
+    url_message="https://api.telegram.org/bot{bot_id}/sendMessage?parse_mode=html&chat_id={chat_id}&text={message}"
+    url_graph="https://api.telegram.org/bot{bot_id}/sendPhoto"
+
     template=[
         'Current balance: <strong>{balance:,.2f} BRL</strong>.\n',
         'Previous balance: <strong>{balance_prev:,.2f} BRL</strong>.\n',
         'Variation: <strong>{balance_var:,.2f} BRL</strong>.\n',
         'Percent change: <strong>{balance_pct_change:,.2%}</strong>.\n',
+        'Historycal growth: <strong>{balance_growth:,.2%}</strong> in <strong>{balance_growth_period}</strong>.\n',
         '<strong>Brakedown by tokens and coins:</strong>',
         '<pre>{balances}</pre>'
     ]
@@ -133,9 +140,32 @@ def send_telegram_report(chat_id,bot_id,tokens):
 
     urllib.request.urlopen(
         urllib.request.Request(
-            url=f"https://api.telegram.org/bot{bot_id}/sendMessage?parse_mode=html&chat_id={chat_id}&text={message}",
+            url=url_message.format(
+                bot_id=bot_id,
+                chat_id=chat_id,
+                message=message
+            )
         )
     )
+
+    # with io.BytesIO() as buffer:  # use buffer memory
+    #     tokens['balance_history'].plot(kind='line').figure.savefig(buffer, format='png')
+    #     buffer.seek(0)
+
+    #     graph = dict(
+    #         chat_id=chat_id,
+    #         caption='something',
+    #         photo=buffer.read()
+    #     )
+
+    # urllib.request.urlopen(
+    #     urllib.request.Request(
+    #         url=url_graph.format(bot_id=bot_id),
+    #         data=urllib.parse.urlencode(graph).encode()
+    #     )
+    # )
+
+    # print(urllib.parse.urlencode(graph).encode()[:200])
 
 
 def send_mail_report(recipient,tokens):
@@ -215,19 +245,12 @@ def prepare_args():
     )
 
     parser.add_argument(
-        '--telegram-chat-id',
-        dest='TELEGRAM_CHAT_ID',
+        '--csv-threshold',
+        dest='csv_threshold',
         required=False,
-        default=None,
-        help='Recipient’s Telegram ID'
-    )
-
-    parser.add_argument(
-        '--telegram-bot-id',
-        dest='TELEGRAM_BOT_ID',
-        required=False,
-        default=None,
-        help='Telegram bot ID as provided by https://t.me/BotFather'
+        type=float,
+        default=0,
+        help='Save updated balance on CSV only if balance variation is bigger than this'
     )
 
     parser.add_argument(
@@ -261,6 +284,22 @@ def prepare_args():
         required=False,
         default=None,
         help='An e-mail address to receive a report.'
+    )
+
+    parser.add_argument(
+        '--telegram-chat-id',
+        dest='TELEGRAM_CHAT_ID',
+        required=False,
+        default=None,
+        help='Recipient’s Telegram ID'
+    )
+
+    parser.add_argument(
+        '--telegram-bot-id',
+        dest='TELEGRAM_BOT_ID',
+        required=False,
+        default=None,
+        help='Telegram bot ID as provided by https://t.me/BotFather'
     )
 
     parser.add_argument(
@@ -306,7 +345,8 @@ def main():
         index=pandas.DatetimeIndex([pandas.Timestamp.now(tz='UTC')], name='time')
     )
 
-    balance_change=True
+    balance_change_for_report=True
+    balance_change_for_csv=True
     balance_prev=None
     csv=None
 
@@ -324,9 +364,17 @@ def main():
         if csv is not None:
             # CSV exists.
 
-            # Determine if we still want to send report
+            # Determine if we still want to save to CSV or send report
             balance_prev=csv.tail(1).BRL.values[0]
-            balance_change=(
+
+            balance_change_for_csv=(
+                abs(
+                    balance.BRL.sum() -
+                    balance_prev
+                )>args['csv_threshold']
+            )
+
+            balance_change_for_report=(
                 abs(
                     balance.BRL.sum() -
                     balance_prev
@@ -338,7 +386,8 @@ def main():
             to_csv_header=False
         else:
             # Set to send report because this is the first run
-            balance_change=True
+            balance_change_for_csv=True
+            balance_change_for_report=True
 
             # CSV doesn't exist.
             # CSV writting parameters
@@ -346,7 +395,7 @@ def main():
             to_csv_header=True
 
         # Append to an existent CSV only if balance changed
-        if abs(balance.BRL.sum()-balance_prev)>0:
+        if balance_change_for_csv:
             (
                 balance
                 .reset_index()
@@ -355,8 +404,8 @@ def main():
                 args['csv_file_name'],
                 sep='|',
                 index=False,
-                header=False,
-                mode='a',
+                header=to_csv_header,
+                mode=to_csv_mode,
             )
 
         # Now reload a complete and up to date CSV
@@ -373,50 +422,63 @@ def main():
     # At this point we have the following:
     # - balances: DataFrame with BRL balance per token
     # - balance_history: Time series of summarized balances
+    # - balance_prev: Previous balance (only if historical CSV available)
+
+    # Function to merge several dicts
+    dmerge = lambda *args: dict(itertools.chain(*[d.items() for d in args]))
 
     report_tokens=dict(
         balance_history  = balance_history,
         balances         = balances,
+        balance          = balance_history.tail(1).BRL.values[0],
+        balance_prev     = balance_prev
+    )
 
-        balance          = balance_history.BRL.sum(),
-        balance_prev     = balance_prev,
-        balance_var      = balance_history.BRL.sum()-balance_prev,
-        balance_pct_change = (balance_history.BRL.sum()/balance_prev)-1,
-        balance_growth     = balance_history.tail(1).BRL.values[0]/balance_history.head(1).BRL.values[0]-1,
-        balance_growth_period = '{}m{}d'.format(
-            int((balance_history.index[-1]-balance_history.index[0]).days/30),
-            int((balance_history.index[-1]-balance_history.index[0]).days%30)
+    report_tokens=dmerge(
+        report_tokens,
+        dict(
+            balance_var      = report_tokens['balance']-report_tokens['balance_prev'],
+            balance_pct_change = (report_tokens['balance']/report_tokens['balance_prev'])-1,
+            balance_growth     = (report_tokens['balance']/balance_history.head(1).BRL.values[0])-1,
+            balance_growth_period = '{}m{}d'.format(
+                int((balance_history.index[-1]-balance_history.index[0]).days/30),
+                int((balance_history.index[-1]-balance_history.index[0]).days%30)
+            )
         )
     )
 
-    if balance_change and args['TELEGRAM_CHAT_ID'] and args['TELEGRAM_BOT_ID']:
+    if balance_change_for_report and args['TELEGRAM_CHAT_ID'] and args['TELEGRAM_BOT_ID']:
         send_telegram_report(
             args['TELEGRAM_CHAT_ID'],
             args['TELEGRAM_BOT_ID'],
-            dict(
-                **report_tokens,
-                balances = (
-                    balances.style
-                    .format('{:,.2f} BRL')
-                    .to_string()
+            dmerge(
+                report_tokens,
+                dict(
+                    balances = (
+                        balances.style
+                        .format('{:,.2f} BRL')
+                        .to_string()
+                    )
                 )
             )
         )
 
 
-    if balance_change and args['mail_recipient']:
+    if balance_change_for_report and args['mail_recipient']:
         send_mail_report(
             args['mail_recipient'],
-            dict(
-                **report_tokens,
-                balances = (
-                    balances.style
-                    .format('{:,.2f} BRL')
-                    .set_table_styles(
-                        [{'selector': 'td',
-                          'props': 'text-align: right;'}]
+            dmerge(
+                report_tokens,
+                dict(
+                    balances = (
+                        balances.style
+                        .format('{:,.2f} BRL')
+                        .set_table_styles(
+                            [{'selector': 'td',
+                              'props': 'text-align: right;'}]
+                        )
+                        .to_html(border=1)
                     )
-                    .to_html(border=1)
                 )
             )
         )
