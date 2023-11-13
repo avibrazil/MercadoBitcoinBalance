@@ -32,10 +32,6 @@ class MercadoBitcoinAPI:
 
         Value of balances is in number of coins, not BRL.
         """
-        def ddebug(table):
-            display(table)
-            return table
-
         balance_params = urllib.parse.urlencode(
             dict(
                 tapi_method = 'get_account_info',
@@ -101,10 +97,6 @@ class MercadoBitcoinAPI:
         }
 
     def get_BRL_balances(self):
-        def ddebug(table):
-            display(table)
-            return table
-
         column_name='Total (BRL)'
 
         balances=self.get_balances()
