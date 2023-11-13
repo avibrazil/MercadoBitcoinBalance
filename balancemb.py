@@ -32,6 +32,10 @@ class MercadoBitcoinAPI:
 
         Value of balances is in number of coins, not BRL.
         """
+        def ddebug(table):
+            display(table)
+            return table
+
         balance_params = urllib.parse.urlencode(
             dict(
                 tapi_method = 'get_account_info',
@@ -55,7 +59,12 @@ class MercadoBitcoinAPI:
                                         key       = self.api_secret,
                                         digestmod = hashlib.sha512,
                                         msg       = '{path}?{query}'.format(
-                                            path=urllib.parse.urlparse(self.MB_TRANSACTION_API).path,
+                                            path=(
+                                                urllib.parse.urlparse(
+                                                    self.MB_TRANSACTION_API
+                                                )
+                                                .path
+                                            ),
                                             query=balance_params
                                         ).encode()
                                     )
@@ -66,20 +75,24 @@ class MercadoBitcoinAPI:
                     )
                     .read()
                     .decode()
-                )['response_data']['balance']
+                )
+                ['response_data']['balance']
             )
             .T
             .astype(float)
-            .query('total>1e-6')
+            .query('total>1e-6 or amount_open_orders>1e-6')
         )
 
     def get_ticker(self,coin):
+        """
+        Return current price of coin
+        """
         return {
             coin: json.loads(
                 urllib.request.urlopen(
                     urllib.request.Request(
                         url=self.MB_TICKER_API.format(coin),
-                        headers={'user-agent':'mozilla'}
+                        headers={'user-agent':'Mozilla'}
                     )
                 )
                 .read()
@@ -88,6 +101,10 @@ class MercadoBitcoinAPI:
         }
 
     def get_BRL_balances(self):
+        def ddebug(table):
+            display(table)
+            return table
+
         column_name='Total (BRL)'
 
         balances=self.get_balances()
@@ -102,10 +119,32 @@ class MercadoBitcoinAPI:
 
         return (
             balances
-            .join(pandas.DataFrame(tickers).T[['last']].astype(float))
-            .assign(**{
-                column_name: lambda table: (table.total*table['last']).combine_first(table.total)
-            })
+            .pipe(
+                lambda table: (
+                    (
+                        table
+                        .join(
+                            pandas.DataFrame(tickers)
+                            .T[['last']]
+                            .astype(float)
+                        )
+                        .assign(**{
+                            column_name: lambda table: (
+                                (table.total*table['last'])
+                                .combine_first(table.total)
+                            )
+                        })
+                    ) if len(tickers.keys())>0
+                    else table
+                )
+            )
+            .pipe(
+                lambda table: (
+                    table.rename(columns=dict(total=column_name))
+                    if column_name not in table.columns
+                    else table
+                )
+            )
             [[column_name]]
             .sort_values(column_name,ascending=False)
         )

@@ -75,4 +75,4 @@ Além do mais, todo dia às 20:15 manda o saldo atual.
 
 Para conseguir enviar e-mails, seu sistema (Linux, obviamente) de forma geral precisa estar configurado como cliente de mail. [Eis um exemplo para configurar o postfix do Fedora](https://fedoramagazine.org/use-postfix-to-get-email-from-your-fedora-system/).
 
-Depois, eu uso o CSV junto com o [investor](https://github.com/avibrazil/investor) para acompanhar performance.
+Depois, eu uso o CSV junto com o [investorzilla](https://github.com/avibrazil/investorzilla) para acompanhar performance.
