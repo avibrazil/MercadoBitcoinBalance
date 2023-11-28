@@ -11,7 +11,7 @@ Este programa:
 
 Instale:
 ```shell
-pip install MercadoBitcoinBalance
+pip install MercadoBitcoinBalance --user
 ```
 
 Use:
@@ -70,8 +70,8 @@ O e-mail e mensagem de Telegram enviados tem esta cara:
 Eu rodo isso a cada meia hora via crontab, assim:
 
 ```crontab
-*/30 * * * * balancemb --mb-id 06…05 --mb-secret 10…19 --csv-threshold 2 --csv ~/investorzilla/mercadobitcoin-balances.txt --csv-fund-name 'Nome arbitrário do fundo' --report-threshold 20 --telegram-chat-id 12345678 --telegram-bot-id '11223344::A…k'
-15 20 * * * cd $HOME/Notebooks/MercadoBitcoinBalance && ./balancemb.py --mb-id 06…05 --mb-secret 10…19 --csv-threshold 5 --csv ~/investorzilla/mercadobitcoin-balances.txt --csv-fund-name 'Nome arbitrário do fundo' --report-threshold -1 --telegram-chat-id 12345678 --telegram-bot-id '11223344::A…k'
+*/30 * * * * ~/.local/bin/balancemb --mb-id 06…05 --mb-secret 10…19 --csv-threshold 2 --csv ~/investorzilla/mercadobitcoin-balances.txt --csv-fund-name 'Nome arbitrário do fundo' --report-threshold 20 --telegram-chat-id 12345678 --telegram-bot-id '11223344::A…k'
+15 20 * * * ~/.local/bin/balancemb --mb-id 06…05 --mb-secret 10…19 --csv-threshold 5 --csv ~/investorzilla/mercadobitcoin-balances.txt --csv-fund-name 'Nome arbitrário do fundo' --report-threshold -1 --telegram-chat-id 12345678 --telegram-bot-id '11223344::A…k'
 ```
 
 Ou seja, atualizo saldo consolidado em `balances.txt` a cada meia hora, não mando e-mail mas mando saldos por Telegram caso houver variação de mais de 20 BRL.
