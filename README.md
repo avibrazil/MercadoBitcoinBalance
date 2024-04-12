@@ -10,11 +10,13 @@ Este programa:
 ## Como usá-lo
 
 Instale:
+
 ```shell
 pip install MercadoBitcoinBalance --user
 ```
 
 Use:
+
 ```shell
 balancemb \
     --mb-id 06…05 \
@@ -55,17 +57,18 @@ O e-mail e mensagem de Telegram enviados tem esta cara:
 >
 > Variation: **1,980.50 BRL**.
 >
-> Percent change: **5.72%**.
+> Percent change: **5\.72%**.
 >
 > Historycal growth: **4%** in **0m2d**.
 >
 > Brakedown by tokens and coins:
-> | 	| Total (BRL) |
-> ------|--------------
-> | **brl**	 | 36,229.86 BRL |
-> | **abfy** | 336.42 BRL |
-> | **psgft** | 9.40 BRL |
-> | **wemix** | 0.54 BRL |
+>
+> |  | Total (BRL) |
+> |--|-------------|
+> | **brl** | 36,229.86 BRL |
+> | **abfy** | 336\.42 BRL |
+> | **psgft** | 9\.40 BRL |
+> | **wemix** | 0\.54 BRL |
 
 Eu rodo isso a cada meia hora via crontab, assim:
 
