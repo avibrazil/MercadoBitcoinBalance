@@ -27,7 +27,7 @@ def send_telegram_report(chat_id,bot_id,tokens):
         'Previous balance: <strong>{balance_prev:,.2f} BRL</strong>.\n',
         'Variation: <strong>{balance_var:,.2f} BRL</strong>.\n',
         'Percent change: <strong>{balance_pct_change:,.2%}</strong>.\n',
-        'Historycal growth: <strong>{balance_growth:,.2%}</strong> in <strong>{balance_growth_period}</strong>.\n',
+        'Historical growth: <strong>{balance_growth:,.2%}</strong> in <strong>{balance_growth_period}</strong>.\n',
         '<strong>Brakedown by tokens and coins:</strong>',
         '<pre>{balances}</pre>'
     ]
