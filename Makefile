@@ -18,4 +18,7 @@ changelog:
 clean:
 	-rm -rf *.egg-info dist .ipynb_checkpoints src/*.egg-info src/.ipynb_checkpoints build *dist-info *pyproject-* .pyproject* .package_note*
 
+install:
+	pip install .
+
 

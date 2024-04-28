@@ -16,7 +16,7 @@ import MercadoBitcoinBalance
 
 def send_telegram_report(chat_id,bot_id,tokens):
     """
-    Send a report via telegram.
+    Send a report via Telegram API.
     """
 
     url_message="https://api.telegram.org/bot{bot_id}/sendMessage?parse_mode=html&chat_id={chat_id}&text={message}"
@@ -51,24 +51,6 @@ def send_telegram_report(chat_id,bot_id,tokens):
         )
     )
 
-    # with io.BytesIO() as buffer:  # use buffer memory
-    #     tokens['balance_history'].plot(kind='line').figure.savefig(buffer, format='png')
-    #     buffer.seek(0)
-
-    #     graph = dict(
-    #         chat_id=chat_id,
-    #         caption='something',
-    #         photo=buffer.read()
-    #     )
-
-    # urllib.request.urlopen(
-    #     urllib.request.Request(
-    #         url=url_graph.format(bot_id=bot_id),
-    #         data=urllib.parse.urlencode(graph).encode()
-    #     )
-    # )
-
-    # print(urllib.parse.urlencode(graph).encode()[:200])
 
 
 def send_mail_report(recipient,tokens):
@@ -105,25 +87,28 @@ def send_mail_report(recipient,tokens):
 
 
 def prepare_logging(level=logging.INFO):
-    # Switch between INFO/DEBUG while running in production/developping:
+    # Switch between INFO/DEBUG while running in production/development:
 
-    # Configure logging for Robson
+    # Configure logging
 
-    FORMATTER = logging.Formatter("%(asctime)s|%(levelname)s|%(name)s|%(message)s")
     HANDLER = logging.StreamHandler()
-    HANDLER.setFormatter(FORMATTER)
+    HANDLER.setFormatter(
+        logging.Formatter("%(asctime)s|%(levelname)s|%(name)s|%(message)s")
+    )
 
-    loggers=[
-        logging.getLogger('__main__'),
-        logging.getLogger('urllib'),
-        logging.getLogger('pandas')
+    logger_domains=[
+        'urllib',
+        'pandas',
+        'MercadoBitcoinBalance',
+        '__main__',
     ]
 
-    for logger in loggers:
+    for logger in logger_domains:
+        logger=logging.getLogger(logger)
         logger.addHandler(HANDLER)
         logger.setLevel(level)
 
-    return loggers[0]
+    return logger
 
 
 
@@ -178,7 +163,7 @@ def prepare_args():
         required=False,
         type=float,
         default=2,
-        help='Send report only if balance variation is bigger than this'
+        help='Send Telegram or mail report only if balance variation is bigger than this'
     )
 
     parser.add_argument(
@@ -218,6 +203,7 @@ def prepare_args():
     return parsed.__dict__
 
 
+
 def main():
     # Read environment and command line parameters
     args=prepare_args()
@@ -236,17 +222,26 @@ def main():
     else:
         logger=prepare_logging()
 
-    mb=MercadoBitcoinBalance.MercadoBitcoinAPI(args['MP_API_ID'],args['MP_API_SECRET'])
+    mb=MercadoBitcoinBalance.MercadoBitcoinAPI(
+        api_id     = args['MP_API_ID'],
+        api_secret = args['MP_API_SECRET']
+    )
 
     balances=mb.get_BRL_balances()
 
+    # Make a one-line DataFrame
     balance=pandas.DataFrame(
         data=dict(
             fund  = args['csv_fund_name'],
             BRL   = balances.sum().values[0]
         ),
-        index=pandas.DatetimeIndex([pandas.Timestamp.now(tz='UTC')], name='time')
+        index=pandas.DatetimeIndex(
+            [pandas.Timestamp.now(tz='UTC')],
+            name='time'
+        )
     )
+
+    logger.debug("Balance:\n" + balance.to_markdown())
 
     balance_change_for_report=True
     balance_change_for_csv=True
@@ -259,7 +254,8 @@ def main():
                 args['csv_file_name'],
                 parse_dates=[0],
                 index_col=0,
-                sep='|'
+                dtype=dict(reported='Int8'),
+                sep='|',
             ).sort_index()
         except FileNotFoundError:
             csv=None
@@ -269,30 +265,49 @@ def main():
 
             # Determine if we still want to save to CSV or send report
             balance_prev=csv.tail(1).BRL.values[0]
+            try:
+                balance_prev_reported=(
+                    csv
+                    .fillna(0)
+                    .query('reported==1', engine='python')
+                    .tail(1)
+                    .BRL
+                    .values[0]
+                )
+            except IndexError:
+                # Balance was never reported before
+                balance_prev_reported=0
 
-            balance_change_for_csv=(
-                abs(
-                    balance.BRL.sum() -
-                    balance_prev
-                )>args['csv_threshold']
-            )
-
+            # Decide if we'll send a report when current distance to last
+            # balance reported is bigger than report_threshold
             balance_change_for_report=(
                 abs(
                     balance.BRL.sum() -
-                    balance_prev
+                    balance_prev_reported
                 )>args['report_threshold']
             )
+
+            if balance_change_for_report:
+                # Write CSV anyway if we are sending a report
+                balance_change_for_csv = True
+            else:
+                balance_change_for_csv=(
+                    abs(
+                        balance.BRL.sum() -
+                        balance_prev
+                    )>args['csv_threshold']
+                )
 
             # CSV writting parameters
             to_csv_mode='a'
             to_csv_header=False
         else:
+            # CSV doesn't exists.
+
             # Set to send report because this is the first run
             balance_change_for_csv=True
             balance_change_for_report=True
 
-            # CSV doesn't exist.
             # CSV writting parameters
             to_csv_mode='w'
             to_csv_header=True
@@ -300,15 +315,20 @@ def main():
         # Append to an existent CSV only if balance changed
         if balance_change_for_csv:
             (
+                # Write or append the one-line balance
                 balance
                 .reset_index()
-                .assign(time=lambda table: table.time.apply(lambda timecell: timecell.isoformat()))
-            ).to_csv(
-                args['csv_file_name'],
-                sep='|',
-                index=False,
-                header=to_csv_header,
-                mode=to_csv_mode,
+                .assign(
+                    time=lambda table: table.time.apply(lambda timecell: timecell.isoformat()),
+                    reported=int(balance_change_for_report),
+                )
+                .to_csv(
+                    args['csv_file_name'],
+                    sep='|',
+                    index=False,
+                    header=to_csv_header,
+                    mode=to_csv_mode,  # append or complete write
+                )
             )
 
         # Now reload a complete and up to date CSV
@@ -316,7 +336,8 @@ def main():
             args['csv_file_name'],
             parse_dates=[0],
             index_col=0,
-            sep='|'
+            dtype=dict(reported='Int8'),
+            sep='|',
         ).sort_index()
 
     else: # no CSV
@@ -324,7 +345,7 @@ def main():
 
     # At this point we have the following:
     # - balances: DataFrame with BRL balance per token
-    # - balance_history: Time series of summarized balances
+    # - balance_history: Time series of summarized balance
     # - balance_prev: Previous balance (only if historical CSV available)
 
     # Function to merge several dicts
@@ -334,7 +355,7 @@ def main():
         balance_history  = balance_history,
         balances         = balances,
         balance          = balance_history.tail(1).BRL.values[0],
-        balance_prev     = balance_prev
+        balance_prev     = balance_prev_reported
     )
 
     report_tokens=dmerge(
