@@ -158,8 +158,18 @@ class MercadoBitcoinAPI:
                         table
                         .join(
                             pandas.DataFrame(tickers)
-                            .T[['last']]
+                            .T['last buy sell'.split()]
                             .astype(float)
+                            .assign(
+                                # Sometime last==0 for very low volume coins,
+                                # so for those make it the average between bid
+                                # and ask price
+                                last=lambda t: (
+                                    t['last']
+                                    .replace(0,None)
+                                    .combine_first((t.buy+t.sell)/2)
+                                )
+                            )
                         )
                         .assign(**{
                             column_name: lambda table: (

@@ -1,7 +1,7 @@
 
 [project]
 name = "MercadoBitcoinBalance"
-version = '1.4'
+version = '1.5'
 description = "Calcula, salva e reporta seu saldo do Mercado Bitcoin"
 readme = "README.md"
 license = { file = "LICENSE" }
